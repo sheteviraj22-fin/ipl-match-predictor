@@ -1,3 +1,11 @@
-dataset/IPL.csv 
-__pycache__/ 
-*.pyc 
+__pycache__/
+*.pyc
+
+dataset/IPL.csv
+dataset/*.pbix
+
+.env
+.env.local
+
+node_modules/
+.next/
