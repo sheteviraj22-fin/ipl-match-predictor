@@ -42,12 +42,19 @@ _STATE: dict[str, Any] = {
 
 import os, threading
 
-_DEFAULT_BBB     = os.getenv("IPL_BBB_PATH", "")
-_DEFAULT_MATCHES = os.getenv("IPL_MATCHES_PATH", "")
+_DEFAULT_BBB = os.getenv(
+    "IPL_BBB_PATH",
+    "dataset/IPL.csv"
+)
+
+_DEFAULT_MATCHES = os.getenv(
+    "IPL_MATCHES_PATH",
+    "dataset/matches.csv"
+)
 
 def _background_load() -> None:
-    if not (_DEFAULT_BBB and _DEFAULT_MATCHES):
-        return
+    print("BBB:", _DEFAULT_BBB)
+    print("MATCHES:", _DEFAULT_MATCHES)
     try:
         from engine import load_or_compute
         result = load_or_compute(_DEFAULT_BBB, _DEFAULT_MATCHES)
