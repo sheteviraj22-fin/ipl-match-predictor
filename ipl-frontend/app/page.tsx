@@ -62,7 +62,9 @@ function buildFixtures(defaultVenue: string) {
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:8000";
+const BASE =
+process.env.NEXT_PUBLIC_API_URL ||
+"http://localhost:8000";
 
 async function apiFetch(path: string, body?: unknown) {
   const res = await fetch(`${BASE}${path}`, {
@@ -76,32 +78,6 @@ async function apiFetch(path: string, body?: unknown) {
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 
-function mockPredict(teamA: string, teamB: string) {
-  const pa = 0.38 + Math.random() * 0.24;
-  return {
-    teamA, teamB,
-    win_probability_A: pa, win_probability_B: 1 - pa,
-    base_diff: (Math.random() - 0.5) * 0.3,
-    venue_adjustment: (Math.random() - 0.5) * 0.04,
-    toss_adjustment: (Math.random() - 0.5) * 0.02,
-  };
-}
-
-function mockStrength(team: string, squad: string[]) {
-  const r = () => 0.45 + Math.random() * 0.45;
-  return { team, batting_unit: r(), bowling_unit: r(), allrounder_balance: r(), total_strength: 0.5 + Math.random() * 0.3, squad_size: squad.length, squad_matched: Math.floor(squad.length * 0.75) };
-}
-
-function mockSim(): SimResult[] {
-  const raw = TEAMS.map(t => ({ team: t, v: Math.random() }));
-  const total = raw.reduce((s, r) => s + r.v, 0);
-  return raw.map(r => ({
-    team: r.team, title_prob: r.v / total,
-    playoff_prob: 0.3 + Math.random() * 0.6,
-    avg_points: 10 + Math.random() * 10,
-    avg_wins: 5 + Math.random() * 9,
-  })).sort((a, b) => b.title_prob - a.title_prob);
-}
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -432,19 +408,41 @@ export default function IPLDashboard() {
   const handlePredict = async () => {
     setPredLoading(true);
     try {
-      if (apiOnline) {
-        const [pred, sA, sB] = await Promise.all([
-          apiFetch("/predict-match", { teamA, teamB, squads: { [teamA]: squadA, [teamB]: squadB }, venue, toss_winner: tossWinner || null }),
-          apiFetch("/team-strength", { team: teamA, squad: squadA }),
-          apiFetch("/team-strength", { team: teamB, squad: squadB }),
-        ]);
-        setPrediction(pred); setStrengthA(sA); setStrengthB(sB);
-      } else {
-        await new Promise(r => setTimeout(r, 500));
-        setPrediction(mockPredict(teamA, teamB));
-        setStrengthA(mockStrength(teamA, squadA));
-        setStrengthB(mockStrength(teamB, squadB));
-      }
+      const [pred, sA, sB] = await Promise.all([
+        apiFetch(
+          "/predict-match",
+          {
+            teamA,
+            teamB,
+            squads: {
+              [teamA]: squadA,
+              [teamB]: squadB
+            },
+            venue,
+            toss_winner: tossWinner || null
+          }
+        ),
+
+        apiFetch(
+          "/team-strength",
+          {
+            team: teamA,
+            squad: squadA
+          }
+        ),
+
+        apiFetch(
+          "/team-strength",
+          {
+            team: teamB,
+            squad: squadB
+          }
+        )
+      ]);
+
+      setPrediction(pred);
+      setStrengthA(sA);
+      setStrengthB(sB);
       setTab("prediction");
     } catch (e) { console.error(e); }
     setPredLoading(false);
@@ -459,9 +457,6 @@ export default function IPLDashboard() {
         TEAMS.forEach(t => { allSquads[t] = SQUADS[t].slice(0, 11); });
         const results = await apiFetch("/simulate-season", { fixtures, squads: allSquads, simulations: 10000 });
         setSimResults(results);
-      } else {
-        await new Promise(r => setTimeout(r, 900));
-        setSimResults(mockSim());
       }
       setTab("simulator");
     } catch (e) { console.error(e); }
