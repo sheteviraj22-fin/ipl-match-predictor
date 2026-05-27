@@ -69,11 +69,28 @@ def load_ball_by_ball(path: str) -> pd.DataFrame:
         rename_map["ball_number"] = "ball"
     if "ball" not in col and "ball_no" in col:
         rename_map["ball_no"] = "ball"
+    # Match id handling
 
     if "id" in col and "match_id" not in col:
         rename_map["id"] = "match_id"
-    if "match_id" not in col and "id" not in col:
-        raise KeyError("Cannot find match_id / id column in ball-by-ball data")
+
+    elif "matchid" in col and "match_id" not in col:
+        rename_map["matchid"] = "match_id"
+
+    elif "match_no" in col and "match_id" not in col:
+        rename_map["match_no"] = "match_id"
+
+    df = df.rename(columns=rename_map)
+
+    col = set(df.columns)
+
+    if "match_id" not in col:
+        print("BALL BY BALL COLUMNS:")
+        print(df.columns.tolist())
+
+        raise KeyError(
+            f"Cannot find match_id column. Available: {df.columns.tolist()}"
+        )
 
     df = df.rename(columns=rename_map)
 
