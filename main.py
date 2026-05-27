@@ -40,7 +40,7 @@ _STATE: dict[str, Any] = {
 }
 # main.py — add after _STATE definition
 
-import os, threading
+import os
 
 _DEFAULT_BBB = os.getenv(
     "IPL_BBB_PATH",
@@ -52,18 +52,31 @@ _DEFAULT_MATCHES = os.getenv(
     "dataset/matches.csv"
 )
 
-def _background_load() -> None:
-    print("BBB:", _DEFAULT_BBB)
-    print("MATCHES:", _DEFAULT_MATCHES)
-    try:
-        from engine import load_or_compute
-        result = load_or_compute(_DEFAULT_BBB, _DEFAULT_MATCHES)
-        _STATE.update({**result, "loaded": True})
-    except Exception as exc:
-        import logging
-        logging.getLogger(__name__).warning("Background preload failed: %s", exc)
+@app.on_event("startup")
+async def startup_load():
 
-threading.Thread(target=_background_load, daemon=True).start()
+    global _STATE
+
+    try:
+        print("BBB:", _DEFAULT_BBB)
+        print("MATCHES:", _DEFAULT_MATCHES)
+
+        from engine import load_or_compute
+
+        result = load_or_compute(
+            _DEFAULT_BBB,
+            _DEFAULT_MATCHES
+        )
+
+        _STATE.update({
+            **result,
+            "loaded": True
+        })
+
+        print("DATA LOADED")
+
+    except Exception as e:
+        print("LOAD FAILED:", e)
 
 def _require_data() -> None:
     if not _STATE["loaded"]:
